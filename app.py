@@ -4,15 +4,14 @@ from flask import Flask, render_template, request
 from flask_socketio import SocketIO, emit, join_room
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'DontForgotToChangeMe'
 socketio = SocketIO(app)
-
+# Need 25 colors in total, maybe make them randomly generated? (but also unique)
 AVATAR_COLORS = [ 'red', 'blue', 'green', 'yellow', 'purple', 'orange' ]
 games = {}
 
 def generate_game_code():
     while True:
-        code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
+        code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
         if code not in games:
             return code
 def get_game_code_for_sid(sid):
@@ -20,6 +19,8 @@ def get_game_code_for_sid(sid):
         if sid in game_data['players'] or sid == game_data.get('host_sid)'):
             return code
         return None
+    
+#Frontend is still very unfinished, this is just a placeholder
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -47,6 +48,7 @@ def handle_join_game(data):
         return
     
     join_room(game_code)
+    # Most likely won't have time to add proper color selection but this is good enough
     color = random.choice(AVATAR_COLORS)
     games[game_code]['players'][request.sid] = {'username': username, 'color': color}
 
