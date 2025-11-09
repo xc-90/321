@@ -1,0 +1,19 @@
+Main Ideas:
+Gameshow that will have a teacher as a host deciding which questions to show to students. 
+Will have a audience and contestants.
+Contestants will be a group of two random students who will recieve a question from the teacher and will have to come up with the best response.
+Audience will also recieve the same question but they will get 4 multiple choice answers instead of having to type an answer.
+At the end of a round (30 seconds long) the answer will be revealed and the audience will get points for choosing the right multiple choice answer.
+The audience will be given 10 seconds to vote for who they think has the best answer to the question, person with the most votes gets points.
+Two game rounds where all students will go up at least once.
+Each round will have 11 different possible questions (22 in total)
+Person with the most points at the end wins
+
+Checklist:
+
+- Homescreen [todo]
+- Lobby creation and joining [todo]
+- In game chat [todo]
+- Round system [todo]
+- List of questions [todo]
+- Winner end screen [todo]
