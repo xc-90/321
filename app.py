@@ -1,12 +1,17 @@
 import random
 import string
-from flask import Flask, render_template, request
+import os
+from flask import Flask, render_template, request, session
 from flask_socketio import SocketIO, emit, join_room
 
 app = Flask(__name__)
 socketio = SocketIO(app)
+app.config['SECRET_KEY'] = os.environ.get('FLASK_SECRET_KEY')
 # Need 25 colors in total, maybe make them randomly generated? (but also unique)
-AVATAR_COLORS = [ 'red', 'blue', 'green', 'yellow', 'purple', 'orange' ]
+AVATAR_COLORS = [
+    '#FF6B6B', '#4ECDC4', '#45B7D1', '#FED766', '#F0B3A8',
+    '#8A84E2', '#3D405B', '#F2CC8F', '#81B29A', '#E07A5F'
+]
 games = {}
 
 def generate_game_code():
@@ -14,16 +19,43 @@ def generate_game_code():
         code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
         if code not in games:
             return code
+        
 def get_game_code_for_sid(sid):
     for code, game_data in games.items():
-        if sid in game_data['players'] or sid == game_data.get('host_sid)'):
+        if sid in game_data['players'] or sid == game_data.get('host_sid'):
             return code
-        return None
+    return None
     
-#Frontend is still very unfinished, this is just a placeholder
+# Flask Routes
 @app.route('/')
 def index():
     return render_template('index.html')
+
+@app.route('/join')
+def join():
+    return render_template('join.html')
+@app.route('/host/<code>')
+def host_lobby(code):
+    if code not in games:
+        return "Game not found", 404
+    return render_template('host_lobby.html', game_code=code)
+
+@app.route('/student/<code>/lobby')
+def student_lobby(code):
+    if code not in games:
+        return "Game not found", 404
+    username = session.get('username', 'Player')
+    return render_template('student_lobby.html', game_code=code, username=username)
+
+@app.route('/game/code/<code>')
+def game_view(code):
+    if code not in games:
+        return "Game not found", 404
+    game_data = games[code]
+    is_host = session.get('is_host', False) and session.get('game_code') == code
+    return render_template('game.html', game_code=code, is_host=is_host)
+
+# Socket.IO Events for the game
 
 @socketio.on('host_game')
 def handle_host_game():
@@ -31,10 +63,14 @@ def handle_host_game():
     join_room(game_code)
  
     games[game_code] = {
-     'host_sid': request.sid,
-     'state': 'lobby',
-     'players': {}
-}
+        'host_sid': request.sid,
+        'state': 'lobby',
+        'players': {}
+    }
+    # Store info in the hosts session
+    session['is_host'] = True
+    session['game_code'] = game_code
+
     print(f"{request.sid} created game {game_code}")
     emit('game_created', {'game_code': game_code})
 
@@ -51,20 +87,24 @@ def handle_join_game(data):
     # Most likely won't have time to add proper color selection but this is good enough
     color = random.choice(AVATAR_COLORS)
     games[game_code]['players'][request.sid] = {'username': username, 'color': color}
+    # Store info in the students session
+    session['username'] = username
+    session['game_code'] = game_code
 
     print(f"{username} has joined the game {game_code}")
-    emit('join_success')
+    emit('join_success', {'game_code': game_code})
 
     player_list = list(games[game_code]['players'].values())
     socketio.emit('update_player_list', {'players': player_list}, to=game_code)
 
 @socketio.on('start_game')
 def handle_start_game():
-    game_code = get_game_code_for_sid(request.sid)
+    game_code = session.get('game_code')
     if game_code and games[game_code]['host_sid'] == request.sid:
         games[game_code]['state'] = 'active'
         print(f"{game_code} started by host ")
-        socketio.emit('game_started', to=game_code)
+        socketio.emit('redirect_to_game', {'game_code': game_code}, to=game_code)
+
 @socketio.on('send_message')
 def handle_send_message(data):
     game_code = get_game_code_for_sid(request.sid)
