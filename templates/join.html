@@ -1,10 +1,54 @@
-<html>
-<head>
-    <title>Unfinished Frontend</title>
-</head>
-<body>
-    <h1>
-        Chemistry Game
-    </h1>
-</body>
-</html>
+{% block content %}
+<h2>Join a Game</h2>
+
+<form id="join-game-form">
+    <label for="game-code">Game Code:</label><br>
+    <input type="text" id="game-code" maxlength="3" required>
+    <br><br>
+
+    <label for="username">Usename:</label><br>
+    <input type="text" id="username" maxlength="30" required>
+    <br><br>
+
+    <button type="submit" id="join-btn">Join Game</button>
+</form>
+</div>
+<!-- Move this to /static -->
+<script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+<script>
+    const socket = io();
+
+    const joinForm = document.getElementById('join-game-form');
+    const alertBox = document.getElementById('alert-box');
+
+    joinForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+
+        const gameCode = document.getElementById('game-code').value.trim().toUpperCase();
+        const username = document.getElementById('username').value.trim();
+
+        if (!gameCode || !username) {
+            showAlert("Please fill in both fields.");
+            return;
+        }
+
+        socket.emit('join_game', { game_code: gameCode, username: username });
+    });
+
+    socket.on('join_success', (data) => {
+        const { game_code } = data;
+        console.log("Joined game:", game_code);
+        window.location.href = `/student/${game_code}/lobby`;
+    });
+
+        socket.on('error', (data) => {
+        if (data && data.message) {
+            showAlert(data.message);
+        }
+    });
+
+    function showAlert(message) {
+        alert(message);
+    }
+</script>
+{% endblock %}

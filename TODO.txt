@@ -11,9 +11,12 @@ Person with the most points at the end wins
 
 Checklist:
 
-- Homescreen [todo]
-- Lobby creation and joining [todo]
+- Homescreen [in progress]
+- Lobby creation and joining [in progress]
+- Student and host lobby [todo]
 - In game chat [todo]
 - Round system [todo]
 - List of questions [todo]
 - Winner end screen [todo]
+- Polish frontend [todo]
+- Thorough playtest and bug fixes before deployment [todo]

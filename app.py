@@ -3,6 +3,8 @@ import string
 import os
 from flask import Flask, render_template, request, session
 from flask_socketio import SocketIO, emit, join_room
+import threading
+import secrets
 
 app = Flask(__name__)
 socketio = SocketIO(app)
@@ -34,11 +36,33 @@ def index():
 @app.route('/join')
 def join():
     return render_template('join.html')
+
+@app.route('/host')
+def host():
+    return render_template('host.html')
+
 @app.route('/host/<code>')
 def host_lobby(code):
-    if code not in games:
+    game = games.get(code)
+    if not game:
         return "Game not found", 404
-    return render_template('host_lobby.html', game_code=code)
+
+    temp_secret = request.args.get('host_secret')
+    if temp_secret:
+        if temp_secret != game.get('host_secret'):
+            return "You didn't make this game", 403
+
+        final_secret = secrets.token_hex(16)
+        game['host_secret_final'] = final_secret
+
+        return render_template('host_lobby.html', game_code=code, host_secret=final_secret, redirect_clean=True)
+
+    final_secret = game.get('host_secret_final')
+    if not final_secret:
+        return "You didn't make this game", 403
+
+    return render_template('host_lobby.html', game_code=code, host_secret=final_secret)
+
 
 @app.route('/student/<code>/lobby')
 def student_lobby(code):
@@ -60,19 +84,22 @@ def game_view(code):
 @socketio.on('host_game')
 def handle_host_game():
     game_code = generate_game_code()
+    host_secret = secrets.token_hex(16)
     join_room(game_code)
  
     games[game_code] = {
         'host_sid': request.sid,
+        'host_secret': host_secret,
         'state': 'lobby',
         'players': {}
     }
     # Store info in the hosts session
     session['is_host'] = True
     session['game_code'] = game_code
+    session['host_secret'] = host_secret
 
     print(f"{request.sid} created game {game_code}")
-    emit('game_created', {'game_code': game_code})
+    emit('game_created', {'game_code': game_code, 'host_secret': host_secret})
 
 @socketio.on('join_game')
 def handle_join_game(data):
@@ -118,18 +145,51 @@ def handle_send_message(data):
     message = data.get('message')
     socketio.emit('new_message', {'user': username, 'text': message}, to=game_code)
 
+# Needed as the host is redirected from /host to /host/<code>, game will instantly die without the delay
+@socketio.on('reconnect_host')
+def handle_reconnect_host(data):
+    game_code = data.get('game_code')
+    secret = data.get('host_secret')
+
+    game = games.get(game_code)
+    if not game or game.get('host_secret_final') != secret:
+        emit('error', {'message': "You didn't make this game"})
+        return
+
+    game['host_sid'] = request.sid
+    join_room(game_code)
+    emit('reconnect_success', {'game_code': game_code})
+
+
 @socketio.on('disconnect')
 def handle_disconnect():
     game_code = get_game_code_for_sid(request.sid)
-    if game_code:
-        if request.sid == games.get(game_code, {}).get('host_sid'):
+    if not game_code:
+        return
+
+    sid = request.sid
+
+    def delete_game_later(): # Needed as the host is redirected from /host to /host/<code>, game will instantly die without the delay
+        socketio.sleep(2)
+        if game_code not in games:
+            return
+
+        if games[game_code].get('host_sid') == sid:
             print(f"{game_code} has ended as the host disconnected")
-            socketio.emit('error', {'message': 'The game has closed as the host disconnected'}, to=game_code)
+            socketio.emit(
+                'error',
+                {'message': 'The game has closed as the host disconnected'},
+                to=game_code
+            )
             del games[game_code]
-        elif request.sid in games[game_code]['players']:
-            games[game_code]['players'].pop(request.sid)
+            return
+
+        if sid in games[game_code]['players']:
+            games[game_code]['players'].pop(sid, None)
             player_list = list(games[game_code]['players'].values())
             socketio.emit('update_player_list', {'players': player_list}, to=game_code)
+
+    socketio.start_background_task(delete_game_later)
 
 if __name__ == '__main__':
     socketio.run(app, debug=True)

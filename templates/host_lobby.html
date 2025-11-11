@@ -1,10 +1,24 @@
-<html>
-<head>
-    <title>Unfinished Frontend</title>
-</head>
-<body>
-    <h1>
-        Chemistry Game
-    </h1>
-</body>
-</html>
+<!--- Lots of small bugs with reconnecting the host between pages and validating the hosts secret, Fix it! -->
+<!-- Move this to /static -->
+<script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+<script>
+const gameCode = "{{ game_code }}";
+const finalSecret = "{{ host_secret }}";
+const redirectClean = {{ redirect_clean|default(False)|lower }};
+
+localStorage.setItem('host_secret', finalSecret);
+
+if (redirectClean) {
+    window.location.href = `/host/${gameCode}`;
+} else {
+    const socket = io();
+
+    socket.on('connect', () => {
+        socket.emit('reconnect_host', { game_code: gameCode, host_secret: finalSecret });
+    });
+
+    socket.on('reconnect_success', () => {
+        console.log("Good");
+    });
+}
+</script>

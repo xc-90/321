@@ -1,0 +1,31 @@
+{% block content %}
+<h2>Host a Game</h2>
+
+<p>Click the button below to create a new game</p>
+<button id="create-game-btn">Create Game</button>
+
+<!-- Move this to /static -->
+<script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+<script>
+    const socket = io();
+
+    const createGameBtn = document.getElementById('create-game-btn');
+    const gameCodeDisplay = document.getElementById('game-code');
+
+    createGameBtn.addEventListener('click', () => {
+        socket.emit('host_game');
+        createGameBtn.disabled = true;
+        createGameBtn.textContent = 'Creating game...';
+    });
+
+    socket.on('game_created', (data) => {
+        const { game_code, host_secret } = data;
+        localStorage.setItem('host_secret', host_secret);
+        window.location.href = `/host/${game_code}?host_secret=${host_secret}`;
+    });
+
+    socket.on('connect_error', (err) => {
+        console.error(err);
+    });
+</script>
+{% endblock %}
