@@ -7,7 +7,7 @@ import threading
 import secrets
 
 app = Flask(__name__)
-socketio = SocketIO(app)
+socketio = SocketIO(app, cors_allowed_origins="*") # This is insecure but needed while developing in codespaces, please change
 app.config['SECRET_KEY'] = os.environ.get('FLASK_SECRET_KEY')
 # Need 25 colors in total, maybe make them randomly generated? (but also unique)
 AVATAR_COLORS = [
@@ -68,6 +68,7 @@ def host_lobby(code):
 def student_lobby(code):
     if code not in games:
         return "Game not found", 404
+    username = request.args.get('username') or session.get('username', 'Player')
     username = session.get('username', 'Player')
     return render_template('student_lobby.html', game_code=code, username=username)
 
@@ -170,7 +171,7 @@ def handle_disconnect():
     sid = request.sid
 
     def delete_game_later(): # Needed as the host is redirected from /host to /host/<code>, game will instantly die without the delay
-        socketio.sleep(2)
+        socketio.sleep(5)
         if game_code not in games:
             return
 

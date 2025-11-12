@@ -1,5 +1,8 @@
 <!--- Lots of small bugs with reconnecting the host between pages and validating the hosts secret, Fix it! -->
 <!-- Move this to /static -->
+ <h1 id="lobby-code">Code: {{ game_code }}</h1>
+ <h3>Players in Lobby:</h3>
+ <ul id="player-list"></ul>
 <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
 <script>
 const gameCode = "{{ game_code }}";
@@ -13,12 +16,28 @@ if (redirectClean) {
 } else {
     const socket = io();
 
-    socket.on('connect', () => {
-        socket.emit('reconnect_host', { game_code: gameCode, host_secret: finalSecret });
-    });
+socket.on('connect', () => {
+    socket.emit('reconnect_host', { game_code: gameCode, host_secret: finalSecret });
+});
 
     socket.on('reconnect_success', () => {
         console.log("Good");
     });
 }
+
+    // Complete mess right now, fix soon
+    socket.on('update_player_list', (data) => {
+        const listEl = document.getElementById('player-list');
+        listEl.innerHTML = '';
+        for (const player of data.players) {
+            const li = document.createElement('li');
+            li.textContent = player.username;
+            li.style.color = player.color;
+            listEl.appendChild(li);
+        }
+    });
+
+    socket.on('connect_error', (err) => {
+        console.error(err);
+    });
 </script>

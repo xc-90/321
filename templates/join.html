@@ -32,20 +32,19 @@
             return;
         }
 
+        sessionStorage.setItem('username', username);
+
         socket.emit('join_game', { game_code: gameCode, username: username });
     });
 
-    socket.on('join_success', (data) => {
-        const { game_code } = data;
-        console.log("Joined game:", game_code);
-        window.location.href = `/student/${game_code}/lobby`;
-    });
+        socket.on('join_success', (data) => {
+            const { game_code } = data;
+            window.location.href = `/student/${game_code}/lobby`;
+        });
 
         socket.on('error', (data) => {
-        if (data && data.message) {
-            showAlert(data.message);
-        }
-    });
+            if (data && data.message) alert(data.message);
+        });
 
     function showAlert(message) {
         alert(message);

@@ -1,10 +1,30 @@
-<html>
-<head>
-    <title>Unfinished Frontend</title>
-</head>
-<body>
-    <h1>
-        Chemistry Game
-    </h1>
-</body>
-</html>
+<h2>Student Lobby</h2>
+
+<p>Lobby Code: {{ game_code }}</p>
+
+<h3>Players in Lobby:</h3>
+<ul id="player-list"></ul>
+
+<script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+<script>
+const gameCode = "{{ game_code }}";
+const username = localStorage.getItem('username');
+const socket = io();
+
+socket.emit('join_game', { game_code: gameCode, username: username });
+
+socket.on('join_success', () => {
+    console.log("Good");
+});
+// Complete mess right now, fix soon
+socket.on('update_player_list', (data) => {
+    const listEl = document.getElementById('player-list');
+    listEl.innerHTML = '';
+    for (const player of data.players) {
+        const li = document.createElement('li');
+        li.textContent = player.username;
+        li.style.color = player.color;
+        listEl.appendChild(li);
+    }
+});
+</script>
