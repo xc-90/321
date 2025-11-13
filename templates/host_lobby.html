@@ -156,6 +156,7 @@
         socket.on('redirect_to_game', (data) => {
             showStatus('Starting game...');
             window.location.href = `/game/code/${data.game_code}`;
+            document.referrer = window.location; // Set referrer for the game page
         });
 
         socket.on('connect_error', (error) => {

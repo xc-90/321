@@ -25,6 +25,12 @@
             border-radius: 4px;
             font-weight: bold;
         }
+        .teacher-name {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #ff0000;
+        }
+        
     </style>
 </head>
 <body>
@@ -50,14 +56,12 @@
         let myColor = '';
 
         socket.on('connect', () => {
-            // Check if we're the host
-            const hostToken = localStorage.getItem(`host_token_${gameCode}`);
-            
-            if (hostToken) {
-                // We might be the host, verify
+            // Use URL referreral to determine if we're the host or a player
+            host = document.referrer && document.referrer.includes(`/host/${gameCode}`);
+            if (host) {
                 socket.emit('verify_host_token', {
                     game_code: gameCode,
-                    host_token: hostToken
+                    host_token: localStorage.getItem(`host_token_${gameCode}`)
                 });
             } else {
                 // We're a player, announce with username
@@ -79,7 +83,7 @@
             myUsername = 'Teacher';
             
             document.getElementById('role-display').innerHTML = '<span class="host-badge">HOST</span>';
-            document.getElementById('username-display').textContent = myUsername;
+            document.getElementById('username-display').innerHTML = '<span class="teacher-name">' + myUsername + '</span>';
         });
 
         socket.on('join_success', (data) => {
@@ -100,7 +104,17 @@
                 window.location.href = '/';
             }
         });
-        
+
+        // Prevent window from closing without confirmation
+        window.addEventListener('beforeunload', (event) => {
+            event.preventDefault();
+            event.returnValue = '';
+        });
+        // Stop history back navigation
+        window.addEventListener('popstate', (event) => {
+            event.preventDefault();
+            history.pushState(null, null, window.location.href);
+        });
     </script>
 </body>
 </html>
