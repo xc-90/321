@@ -66,6 +66,10 @@ def get_game_code_for_sid(sid):
 def index():
     return render_template('index.html')
 
+@app.route('/frame')
+def frame():
+    return render_template('frame.html')
+
 @app.route('/join')
 def join():
     return render_template('join.html')
