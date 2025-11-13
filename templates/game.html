@@ -1,10 +1,106 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-    <title>Unfinished Frontend</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chemistry Game</title>
+    <style>
+        .game-info {
+            background-color: #f0f0f0;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .host-badge {
+            background-color: #4ECDC4;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .player-badge {
+            background-color: #FF6B6B;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+    </style>
 </head>
 <body>
-    <h1>
-        Chemistry Game
-    </h1>
+    <h1>Game View</h1>
+    <p>Game Code: <strong>{{ game_code }}</strong></p>
+    
+    <div class="game-info">
+        <p><strong>Your Role:</strong> <span id="role-display">Loading...</span></p>
+        <p><strong>Your Username:</strong> <span id="username-display">Loading...</span></p>
+    </div>
+    
+    <div id="game-content">
+        <p>Hopefully everyone made it here</p>
+    </div>
+
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+    <script>
+        const socket = io();
+        const gameCode = "{{ game_code }}";
+        
+        let isHost = false;
+        let myUsername = '';
+        let myColor = '';
+
+        socket.on('connect', () => {
+            // Check if we're the host
+            const hostToken = localStorage.getItem(`host_token_${gameCode}`);
+            
+            if (hostToken) {
+                // We might be the host, verify
+                socket.emit('verify_host_token', {
+                    game_code: gameCode,
+                    host_token: hostToken
+                });
+            } else {
+                // We're a player, announce with username
+                const username = localStorage.getItem(`username_${gameCode}`);
+                if (username) {
+                    socket.emit('join_game', {
+                        game_code: gameCode,
+                        username: username
+                    });
+                } else {
+                    alert('Session expired. Please rejoin the game.');
+                    window.location.href = '/join';
+                }
+            }
+        });
+        // Always assumes players are the host, fix this
+        socket.on('host_verified', (data) => {
+            isHost = data.is_host;
+            myUsername = 'Teacher';
+            
+            document.getElementById('role-display').innerHTML = '<span class="host-badge">HOST</span>';
+            document.getElementById('username-display').textContent = myUsername;
+        });
+
+        socket.on('join_success', (data) => {
+            isHost = false;
+            myUsername = data.username;
+            myColor = data.color;
+            
+            document.getElementById('role-display').innerHTML = '<span class="player-badge">PLAYER</span>';
+            document.getElementById('username-display').textContent = myUsername;
+            document.getElementById('username-display').style.color = myColor;
+            
+            console.log('Confirmed as player:', myUsername);
+        });
+
+        socket.on('error', (data) => {
+            alert(data.message);
+            if (data.message.includes('closed') || data.message.includes('not found')) {
+                window.location.href = '/';
+            }
+        });
+        
+    </script>
 </body>
 </html>

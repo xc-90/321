@@ -1,31 +1,56 @@
+{% extends "index.html" %}
+
 {% block content %}
 <h2>Host a Game</h2>
-
 <p>Click the button below to create a new game</p>
 <button id="create-game-btn">Create Game</button>
+<p id="status-message" style="color: #666; margin-top: 10px;"></p>
 
-<!-- Move this to /static -->
 <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
 <script>
     const socket = io();
-
     const createGameBtn = document.getElementById('create-game-btn');
-    const gameCodeDisplay = document.getElementById('game-code');
+    const statusMsg = document.getElementById('status-message');
+
+    socket.on('connect', () => {
+        console.log('Connected to server');
+        statusMsg.textContent = '';
+    });
+
+    socket.on('connect_error', (error) => {
+        console.error('Connection error:', error);
+        statusMsg.textContent = 'Connection error. Please refresh the page';
+        statusMsg.style.color = 'red';
+        createGameBtn.disabled = false;
+        createGameBtn.textContent = 'Create Game';
+    });
 
     createGameBtn.addEventListener('click', () => {
         socket.emit('host_game');
         createGameBtn.disabled = true;
         createGameBtn.textContent = 'Creating game...';
+        statusMsg.textContent = 'Creating your game...';
+        statusMsg.style.color = '#666';
     });
 
     socket.on('game_created', (data) => {
-        const { game_code, host_secret } = data;
-        localStorage.setItem('host_secret', host_secret);
-        window.location.href = `/host/${game_code}?host_secret=${host_secret}`;
+        const { game_code, host_token } = data;
+        console.log('Game created:', game_code);
+        statusMsg.textContent = 'Game created';
+        statusMsg.style.color = 'green';
+        
+        // Store token in localStorage
+        localStorage.setItem(`host_token_${game_code}`, host_token);
+        
+        // Redirect immediately
+        window.location.href = `/host/${game_code}`;
     });
 
-    socket.on('connect_error', (err) => {
-        console.error(err);
+    socket.on('error', (data) => {
+        alert(data.message || 'An error occurred');
+        createGameBtn.disabled = false;
+        createGameBtn.textContent = 'Create Game';
+        statusMsg.textContent = '';
     });
 </script>
 {% endblock %}

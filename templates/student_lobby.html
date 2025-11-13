@@ -1,30 +1,121 @@
-<h2>Student Lobby</h2>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chemistry Game</title>
+    <style>
+        #player-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        #player-list li {
+            padding: 8px;
+            margin: 4px 0;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        .you-indicator {
+            font-size: 1.2em;
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h2>Student Lobby</h2>
+    <p>Game Code: <strong>{{ game_code }}</strong></p>
+    <p class="you-indicator">Your Username: <strong id="your-username">Loading...</strong></p>
 
-<p>Lobby Code: {{ game_code }}</p>
+    <h3>Players in Lobby:</h3>
+    <ul id="player-list">
+        <li style="font-style: italic; color: #999;">Connecting...</li>
+    </ul>
 
-<h3>Players in Lobby:</h3>
-<ul id="player-list"></ul>
+    <p><em>Waiting for host to start the game...</em></p>
 
-<script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
-<script>
-const gameCode = "{{ game_code }}";
-const username = localStorage.getItem('username');
-const socket = io();
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+    <script>
+        const gameCode = "{{ game_code }}";
+        
+        // Get username from localStorage
+        const username = localStorage.getItem(`username_${gameCode}`);
+        
+        if (!username) {
+            alert('No username found. Please join the game again.');
+            window.location.href = '/join';
+        }
+        
+        document.getElementById('your-username').textContent = username;
 
-socket.emit('join_game', { game_code: gameCode, username: username });
+        const socket = io();
 
-socket.on('join_success', () => {
-    console.log("Good");
-});
-// Complete mess right now, fix soon
-socket.on('update_player_list', (data) => {
-    const listEl = document.getElementById('player-list');
-    listEl.innerHTML = '';
-    for (const player of data.players) {
-        const li = document.createElement('li');
-        li.textContent = player.username;
-        li.style.color = player.color;
-        listEl.appendChild(li);
-    }
-});
-</script>
+        socket.on('connect', () => {
+            console.log('Announcing username to other players');
+            // Re-announce username on every connection
+            socket.emit('join_game', { 
+                game_code: gameCode, 
+                username: username 
+            });
+        });
+
+        socket.on('join_success', (data) => {
+            console.log('Successfully joined/rejoined game');
+            // Update stored data if server sent new info
+            if (data.color) {
+                localStorage.setItem(`color_${gameCode}`, data.color);
+            }
+        });
+
+        socket.on('update_player_list', (data) => {
+            const listEl = document.getElementById('player-list');
+            listEl.innerHTML = '';
+            
+            if (data.players.length === 0) {
+                const li = document.createElement('li');
+                li.textContent = 'No players yet...';
+                li.style.fontStyle = 'italic';
+                li.style.color = '#999';
+                listEl.appendChild(li);
+                return;
+            }
+            
+            data.players.forEach(player => {
+                const li = document.createElement('li');
+                li.textContent = player.username;
+                li.style.color = player.color;
+                
+                // Highlight current user
+                if (player.username === username) {
+                    li.textContent += ' (You)';
+                    li.style.fontSize = '1.2em';
+                    li.style.backgroundColor = '#f0f0f0';
+                    li.style.padding = '10px';
+                    li.style.borderRadius = '4px';
+                }
+                
+                listEl.appendChild(li);
+            });
+        });
+
+        socket.on('redirect_to_game', (data) => {
+            window.location.href = `/game/code/${data.game_code}`;
+        });
+
+        socket.on('error', (data) => {
+            alert(data.message || 'An error occurred');
+            
+            if (data.message && (data.message.includes('closed') || data.message.includes('not found'))) {
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 1000);
+            }
+        });
+
+        socket.on('connect_error', (error) => {
+            console.error('Connection error:', error);
+        });
+    </script>
+</body>
+</html>

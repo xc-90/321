@@ -13,10 +13,10 @@ Checklist:
 
 - Homescreen [in progress]
 - Lobby creation and joining [in progress]
-- Student and host lobby [todo]
+- Student and host lobby [in progress]
 - In game chat [todo]
 - Round system [todo]
-- List of questions [todo]
+- List of questions [done]
 - Winner end screen [todo]
 - Polish frontend [todo]
 - Thorough playtest and bug fixes before deployment [todo]

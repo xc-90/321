@@ -1,25 +1,31 @@
+{% extends "index.html" %}
+
 {% block content %}
 <h2>Join a Game</h2>
-
+<title>Chemistry Game</title>
 <form id="join-game-form">
     <label for="game-code">Game Code:</label><br>
-    <input type="text" id="game-code" maxlength="3" required>
+    <input type="text" id="game-code" maxlength="3" required style="text-transform: uppercase;">
     <br><br>
 
-    <label for="username">Usename:</label><br>
+    <label for="username">Username:</label><br>
     <input type="text" id="username" maxlength="30" required>
     <br><br>
 
     <button type="submit" id="join-btn">Join Game</button>
 </form>
-</div>
-<!-- Move this to /static -->
+<p id="status-message" style="color: #666; margin-top: 10px;"></p>
+
 <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
 <script>
     const socket = io();
-
     const joinForm = document.getElementById('join-game-form');
-    const alertBox = document.getElementById('alert-box');
+    const joinBtn = document.getElementById('join-btn');
+    const statusMsg = document.getElementById('status-message');
+
+    socket.on('connect', () => {
+        console.log('Connected to server');
+    });
 
     joinForm.addEventListener('submit', (e) => {
         e.preventDefault();
@@ -28,26 +34,52 @@
         const username = document.getElementById('username').value.trim();
 
         if (!gameCode || !username) {
-            showAlert("Please fill in both fields.");
+            alert("Please fill in both fields.");
             return;
         }
 
-        sessionStorage.setItem('username', username);
+        if (username.length < 2) {
+            alert("Username must be at least 2 characters.");
+            return;
+        }
 
-        socket.emit('join_game', { game_code: gameCode, username: username });
+        // Store username in localStorage for persistence across reconnections
+        localStorage.setItem(`username_${gameCode}`, username);
+
+        joinBtn.disabled = true;
+        joinBtn.textContent = 'Joining...';
+        statusMsg.textContent = 'Joining game...';
+        statusMsg.style.color = '#666';
+
+        socket.emit('join_game', { 
+            game_code: gameCode, 
+            username: username 
+        });
     });
 
-        socket.on('join_success', (data) => {
-            const { game_code } = data;
-            window.location.href = `/student/${game_code}/lobby`;
-        });
+    socket.on('join_success', (data) => {
+        const { game_code, username, color } = data;
+        
+        // Store all user data for this game
+        localStorage.setItem(`username_${game_code}`, username);
+        localStorage.setItem(`color_${game_code}`, color);
+        
+        statusMsg.textContent = 'Success! Redirecting...';
+        statusMsg.style.color = 'green';
+        window.location.href = `/student/${game_code}/lobby`;
+    });
 
-        socket.on('error', (data) => {
-            if (data && data.message) alert(data.message);
-        });
+    socket.on('error', (data) => {
+        alert(data.message || 'An error occurred');
+        joinBtn.disabled = false;
+        joinBtn.textContent = 'Join Game';
+        statusMsg.textContent = '';
+    });
 
-    function showAlert(message) {
-        alert(message);
-    }
+    socket.on('connect_error', (error) => {
+        console.error('Connection error:', error);
+        statusMsg.textContent = 'Connection error. Please refresh the page.';
+        statusMsg.style.color = 'red';
+    });
 </script>
 {% endblock %}

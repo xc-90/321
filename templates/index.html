@@ -1,21 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>{% block title %}Chemistry Game{% endblock %}</title>
-    </head>
-    <body>
-        <header>
-            <h1>Chemistry Game</h1>
-            <nav>
-                <a href="{{ url_for('host') }}">Host Game</a>
-                <a href="{{ url_for('join') }}">Join Game</a>
-            </nav>
-        </header>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Chemistry Game{% endblock %}</title>
+</head>
+<body>
+    <header>
+        <h1>Chemistry Game</h1>
+        <nav>
+            <a href="{{ url_for('host') }}">Host Game</a>
+            <a href="{{ url_for('join') }}">Join Game</a>
+        </nav>
+    </header>
     <main>
         {% block content %}
         {% endblock %}
     </main>
-    
-    </body>
+</body>
 </html>
