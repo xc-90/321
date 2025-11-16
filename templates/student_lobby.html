@@ -1,101 +1,92 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='student_lobby.css') }}">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chemistry Game</title>
-    <style>
-        #player-list {
-            list-style-type: none;
-            padding: 0;
-        }
-        #player-list li {
-            padding: 8px;
-            margin: 4px 0;
-            font-weight: bold;
-            font-size: 1.1em;
-        }
-        .you-indicator {
-            font-size: 1.2em;
-            background-color: #f0f0f0;
-            padding: 10px;
-            border-radius: 4px;
-        }
-    </style>
+    <title>Lobby - Chemistry Game</title>
 </head>
 <body>
-    <h2>Student Lobby</h2>
-    <p>Game Code: <strong>{{ game_code }}</strong></p>
-    <p class="you-indicator">Your Username: <strong id="your-username">Loading...</strong></p>
+    <header class="lobby-header">
+        <h2>Student Lobby</h2>
+        <p>Game Code: <strong id="game-code-display">{{ game_code }}</strong></p>
+        <p class="you-indicator">You are: <strong id="your-username">...</strong></p>
+        <p class="status-message"><em>Waiting for the host to start the game...</em></p>
+    </header>
 
-    <h3>Players in Lobby:</h3>
-    <ul id="player-list">
-        <li style="font-style: italic; color: #999;">Connecting...</li>
-    </ul>
+    <main class="player-area">
+        <h3>Players in Lobby:</h3>
+        <div id="player-container">
+        </div>
+    </main>
 
-    <p><em>Waiting for host to start the game...</em></p>
+    <div class="chat-container">
+        <div id="chat-messages" class="chat-messages"></div>
+        <form id="chat-form" class="chat-form">
+            <input type="text" id="chat-input" placeholder="Type a message..." autocomplete="off" required maxlength="100">
+            <button type="submit" id="send-button">Send</button>
+        </form>
+    </div>
 
     <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
     <script>
         const gameCode = "{{ game_code }}";
-        
-        // Get username from localStorage
         const username = localStorage.getItem(`username_${gameCode}`);
         
         if (!username) {
-            alert('No username found. Please join the game again.');
+            alert('Username not found. Please rejoin.');
             window.location.href = '/join';
         }
         
         document.getElementById('your-username').textContent = username;
+        const yourUsernameEl = document.getElementById('your-username');
+        const yourIndicatorEl = yourUsernameEl.parentElement;
 
         const socket = io();
 
         socket.on('connect', () => {
-            console.log('Announcing username to other players');
-            // Re-announce username on every connection
-            socket.emit('join_game', { 
-                game_code: gameCode, 
-                username: username 
-            });
+            socket.emit('join_game', { game_code: gameCode, username: username });
         });
 
         socket.on('join_success', (data) => {
-            console.log('Successfully joined/rejoined game');
-            // Update stored data if server sent new info
             if (data.color) {
                 localStorage.setItem(`color_${gameCode}`, data.color);
+                yourIndicatorEl.style.borderColor = data.color;
+                yourUsernameEl.style.color = data.color;
             }
         });
 
+        socket.on('banned', (data) => {
+         localStorage.setItem('no', 'true');
+            alert(data.message);
+            window.location.href = '/';
+       });
+
         socket.on('update_player_list', (data) => {
-            const listEl = document.getElementById('player-list');
-            listEl.innerHTML = '';
-            
+            const container = document.getElementById('player-container');
+            container.innerHTML = '';
+
             if (data.players.length === 0) {
-                const li = document.createElement('li');
-                li.textContent = 'No players yet...';
-                li.style.fontStyle = 'italic';
-                li.style.color = '#999';
-                listEl.appendChild(li);
+                container.innerHTML = `<p class="waiting-message">Waiting for players...</p>`;
                 return;
             }
             
             data.players.forEach(player => {
-                const li = document.createElement('li');
-                li.textContent = player.username;
-                li.style.color = player.color;
+                const circle = document.createElement('div');
+                circle.className = 'player-circle';
+                circle.style.backgroundColor = player.color;
+                circle.dataset.username = player.username;
                 
-                // Highlight current user
                 if (player.username === username) {
-                    li.textContent += ' (You)';
-                    li.style.fontSize = '1.2em';
-                    li.style.backgroundColor = '#f0f0f0';
-                    li.style.padding = '10px';
-                    li.style.borderRadius = '4px';
+                    circle.classList.add('is-you');
                 }
-                
-                listEl.appendChild(li);
+
+                const topPos = Math.random() * 85;
+                const leftPos = Math.random() * 95;
+                circle.style.top = `${topPos}%`;
+                circle.style.left = `${leftPos}%`;
+
+                container.appendChild(circle);
             });
         });
 
@@ -105,17 +96,49 @@
 
         socket.on('error', (data) => {
             alert(data.message || 'An error occurred');
-            
             if (data.message && (data.message.includes('closed') || data.message.includes('not found'))) {
+                setTimeout(() => { window.location.href = '/'; }, 1000);
+            }
+        });
+
+        const chatForm = document.getElementById('chat-form');
+        const chatInput = document.getElementById('chat-input');
+        const chatMessages = document.getElementById('chat-messages');
+        const sendButton = document.getElementById('send-button');
+
+        chatForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const message = chatInput.value.trim();
+            if (message) {
+                socket.emit('send_message', { message: message });
+                chatInput.value = '';
+
+                sendButton.disabled = true;
                 setTimeout(() => {
-                    window.location.href = '/';
+                    sendButton.disabled = false;
+                    chatInput.focus();
                 }, 1000);
             }
         });
 
-        socket.on('connect_error', (error) => {
-            console.error('Connection error:', error);
+        socket.on('new_message', (data) => {
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('chat-message');
+
+            const userSpan = document.createElement('span');
+            userSpan.classList.add('user');
+            userSpan.textContent = `${data.user}: `;
+            userSpan.style.color = data.color;
+
+            messageElement.appendChild(userSpan);
+
+            messageElement.append(document.createTextNode(data.text));
+
+            chatMessages.appendChild(messageElement);
+            
+            chatMessages.scrollTop = chatMessages.scrollHeight;
         });
+
     </script>
 </body>
 </html>

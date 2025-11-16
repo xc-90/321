@@ -1,53 +1,26 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='host_lobby.css') }}">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chemistry Game</title>
-    <style>
-        #player-list {
-            list-style-type: none;
-            padding: 0;
-        }
-        #player-list li {
-            padding: 8px;
-            margin: 4px 0;
-            font-weight: bold;
-            font-size: 1.1em;
-        }
-        #start-game-btn {
-            padding: 10px 20px;
-            font-size: 1.1em;
-            margin-top: 20px;
-            cursor: pointer;
-        }
-        #start-game-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        .status-message {
-            margin: 10px 0;
-            padding: 10px;
-            border-radius: 4px;
-        }
-        .status-error {
-            background-color: #ffebee;
-            color: #c62828;
-        }
-        .status-info {
-            background-color: #e3f2fd;
-            color: #1565c0;
-        }
-    </style>
+    <title>Lobby - Chemistry Game</title>
 </head>
 <body>
-    <h1 id="lobby-code">Game Code: {{ game_code }}</h1>
-    <div id="status-container"></div>
-    <h3>Players in Lobby:</h3>
-    <ul id="player-list">
-        <li style="font-style: italic; color: #999;">Connecting...</li>
-    </ul>
-    <button id="start-game-btn" disabled>Start Game</button>
+    <header class="lobby-header">
+        <div class="game-code-container">
+            <p>Game Code:</p>
+            <div id="lobby-code-box">{{ game_code }}</div>
+        </div>
+        <div id="status-container"></div>
+        <button id="start-game-btn" disabled>Start Game</button>
+    </header>
+
+    <main class="player-area">
+        <h3>Players in Lobby:</h3>
+        <div id="player-container">
+        </div>
+    </main>
 
     <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
     <script>
@@ -57,39 +30,27 @@
 
         function showStatus(message, isError = false) {
             const container = document.getElementById('status-container');
-            container.innerHTML = `<div class="status-message ${isError ? 'status-error' : 'status-info'}">${message}</div>`;
-        }
-
-        function clearStatus() {
-            document.getElementById('status-container').innerHTML = '';
+            if (message) {
+                container.innerHTML = `<p class="status-message ${isError ? 'status-error' : 'status-info'}">${message}</p>`;
+            } else {
+                container.innerHTML = '';
+            }
         }
 
         socket.on('connect', () => {
-            showStatus('Verifying access');
-            
-            // Get the token from localStorage
+            showStatus('Verifying access...');
             const hostToken = localStorage.getItem(`host_token_${gameCode}`);
-            
             if (!hostToken) {
-                showStatus('You did not create this game.', true);
-                setTimeout(() => {
-                    window.location.href = '/';
-                }, 2000);
+                showStatus('You did not create this game. Redirecting...', true);
+                setTimeout(() => { window.location.href = '/'; }, 2000);
                 return;
             }
-            
-            // Send token to server for verification
-            socket.emit('verify_host_token', { 
-                game_code: gameCode, 
-                host_token: hostToken 
-            });
+            socket.emit('verify_host_token', { game_code: gameCode, host_token: hostToken });
         });
 
         socket.on('host_verified', (data) => {
             verified = true;
-            clearStatus();
-            
-            // Enable start button if there are players
+            showStatus('');
             updatePlayerList(data.players);
         });
 
@@ -103,65 +64,53 @@
         });
 
         function updatePlayerList(players) {
-            const listEl = document.getElementById('player-list');
+            const container = document.getElementById('player-container');
             const startBtn = document.getElementById('start-game-btn');
-            
-            listEl.innerHTML = '';
-            
+            container.innerHTML = '';
+
             if (players.length === 0) {
-                const li = document.createElement('li');
-                li.textContent = 'Waiting for players to join...';
-                li.style.fontStyle = 'italic';
-                li.style.color = '#999';
-                li.style.fontWeight = 'normal';
-                listEl.appendChild(li);
+                container.innerHTML = `<p class="waiting-message">Waiting for players to join...</p>`;
                 startBtn.disabled = true;
             } else {
                 players.forEach(player => {
-                    const li = document.createElement('li');
-                    li.textContent = player.username;
-                    li.style.color = player.color;
-                    listEl.appendChild(li);
+                    const circle = document.createElement('div');
+                    circle.className = 'player-circle';
+                    circle.style.backgroundColor = player.color;
+                    circle.dataset.username = player.username; 
+
+                    const topPos = Math.random() * 85;
+                    const leftPos = Math.random() * 95;
+                    circle.style.top = `${topPos}%`;
+                    circle.style.left = `${leftPos}%`;
+
+                    container.appendChild(circle);
                 });
-                
-                // Enable start button only if verified and there are players
-                startBtn.disabled = !verified || players.length === 0;
+                startBtn.disabled = !verified;
             }
         }
 
-        socket.on('error', (data) => {
-            showStatus(data.message || 'An error occurred', true);
-            
-            if (data.message && (data.message.includes('closed') || data.message.includes('disconnected'))) {
-                setTimeout(() => {
-                    window.location.href = '/';
-                }, 2000);
-            }
-        });
-
-        // Start game button
         document.getElementById('start-game-btn').addEventListener('click', () => {
-            if (!verified) {
-                alert('Wait for verification...');
-                return;
-            }
-            
+            if (!verified) return;
             const startBtn = document.getElementById('start-game-btn');
             startBtn.disabled = true;
             startBtn.textContent = 'Starting...';
-            
             socket.emit('start_game');
         });
 
         socket.on('redirect_to_game', (data) => {
             showStatus('Starting game...');
             window.location.href = `/game/code/${data.game_code}`;
-            document.referrer = window.location; // Set referrer for the game page
         });
 
+        socket.on('error', (data) => {
+            showStatus(data.message || 'An error occurred', true);
+            if (data.message && data.message.includes('closed')) {
+                setTimeout(() => { window.location.href = '/'; }, 3000);
+            }
+        });
+        
         socket.on('connect_error', (error) => {
-            console.error('Connection error:', error);
-            showStatus('Connection error. Please refresh the page.', true);
+            showStatus('Please rejoin', true);
         });
     </script>
 </body>

@@ -12,10 +12,10 @@ Give teacher 10 seconds to help students with the questions through game chat
 
 Checklist:
 
-- Homescreen [in progress]
-- Lobby creation and joining [in progress]
-- Student and host lobby [in progress]
-- In game chat [todo]
+- Homescreen [done]
+- Lobby creation and joining [done]
+- Student and host lobby [done]
+- In game chat [done]
 - Round system [todo]
 - List of questions [done]
 - Winner end screen [todo]

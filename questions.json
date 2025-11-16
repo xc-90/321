@@ -1,0 +1,112 @@
+[
+    {
+        "id": 1,
+        "question": "What is the main cause of an ionic bond forming between two atoms?",
+        "options": [
+            "Sharing of valence electrons equally",
+            "Attraction between two neutral atoms",
+            "Transfer of electrons from one atom to another",
+            "Combination of two identical elements"
+        ],
+        "correct_answer_index": 2
+    },
+    {
+        "id": 2,
+        "question": "When an atom loses electrons, what type of ion does it become?",
+        "options": [
+            "Anion",
+            "Cation",
+            "Neutral atom",
+            "Isotope"
+        ],
+        "correct_answer_index": 1
+    },
+    {
+        "id": 3,
+        "question": "Which of the following statements best describes an anion?",
+        "options": [
+            "A particle with a positive charge",
+            "A particle that gains electrons and becomes negatively charged",
+            "A particle that loses electrons and becomes neutral",
+            "A particle that forms only with metals"
+        ],
+        "correct_answer_index": 1
+    },
+    {
+        "id": 4,
+        "question": "Why do ionic compounds form between metals and nonmetals?",
+        "options": [
+            "Metals tend to lose electrons while nonmetals gain them",
+            "Nonmetals lose electrons and metals gain them",
+            "Both metals and nonmetals share electrons equally",
+            "They both have full outer shells naturally"
+        ],
+        "correct_answer_index": 0
+    },
+    {
+        "id": 5,
+        "question": "What rule explains why atoms tend to gain or lose electrons during bonding?",
+        "options": [
+            "Law of Conservation of Mass",
+            "Octet Rule",
+            "Periodic Law",
+            "Atomic Stability Principle"
+        ],
+        "correct_answer_index": 1
+    },
+    {
+        "id": 6,
+        "question": "What holds the ions together in an ionic compound?",
+        "options": [
+            "Covalent sharing",
+            "Hydrogen bonds",
+            "Electrostatic attraction between opposite charges",
+            "Magnetic forces"
+        ],
+        "correct_answer_index": 2
+    },
+    {
+        "id": 7,
+        "question": "Why do ionic compounds have high melting points?",
+        "options": [
+            "The strong attraction between oppositely charged ions",
+            "Weak molecular forces",
+            "Soft molecular structures",
+            "Magnetic attraction"
+        ],
+        "correct_answer_index": 0
+    },
+    {
+        "id": 8,
+        "question": "What type of element usually becomes a cation?",
+        "options": [
+            "Metal",
+            "Nonmetal",
+            "Noble gas",
+            "Metalloid"
+        ],
+        "correct_answer_index": 0
+    },
+    {
+        "id": 9,
+        "question": "What type of element usually becomes an anion?",
+        "options": [
+            "Metal",
+            "Nonmetal",
+            "Noble gas",
+            "Transition metal"
+        ],
+        "correct_answer_index": 1
+    },
+    {
+        "id": 10,
+        "question": "What happens to the total charge of an ionic compound?",
+        "options": [
+            "It becomes positive overall",
+            "It becomes negative overall",
+            "It becomes neutral because the charges balance out",
+            "It remains unstable"
+        ],
+        "correct_answer_index": 2
+    }
+]

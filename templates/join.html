@@ -1,85 +1,92 @@
-{% extends "index.html" %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='join.css') }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Join Game - Chemistry Game</title>
+</head>
+<body>
+    
+    <main class="container">
+        <h2>Join a Game</h2>
+        <form id="join-game-form">
+            <label for="game-code">Game Code</label>
+            <input type="text" id="game-code" maxlength="3" required>
+            
+            <label for="username">Username</label>
+            <input type="text" id="username" maxlength="30" required>
+            
+            <button type="submit" id="join-btn">Join Game</button>
+        </form>
+    </main>
 
-{% block content %}
-<h2>Join a Game</h2>
-<title>Chemistry Game</title>
-<form id="join-game-form">
-    <label for="game-code">Game Code:</label><br>
-    <input type="text" id="game-code" maxlength="3" required style="text-transform: uppercase;">
-    <br><br>
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+    <script>
+        const socket = io();
+        const joinForm = document.getElementById('join-game-form');
+        const joinBtn = document.getElementById('join-btn');
 
-    <label for="username">Username:</label><br>
-    <input type="text" id="username" maxlength="30" required>
-    <br><br>
+        if (localStorage.getItem('no')) {
+        document.body.innerHTML = `
+            <main class="container">
+                <h2 style="color: #ff4d4d;">You have been banned</h2>
+            </main> `;
+        throw new Error("nah");
+    }
 
-    <button type="submit" id="join-btn">Join Game</button>
-</form>
-<p id="status-message" style="color: #666; margin-top: 10px;"></p>
-
-<script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
-<script>
-    const socket = io();
-    const joinForm = document.getElementById('join-game-form');
-    const joinBtn = document.getElementById('join-btn');
-    const statusMsg = document.getElementById('status-message');
-
-    socket.on('connect', () => {
-        console.log('Connected to server');
-    });
-
-    joinForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-
-        const gameCode = document.getElementById('game-code').value.trim().toUpperCase();
-        const username = document.getElementById('username').value.trim();
-
-        if (!gameCode || !username) {
-            alert("Please fill in both fields.");
-            return;
-        }
-
-        if (username.length < 2) {
-            alert("Username must be at least 2 characters.");
-            return;
-        }
-
-        // Store username in localStorage for persistence across reconnections
-        localStorage.setItem(`username_${gameCode}`, username);
-
-        joinBtn.disabled = true;
-        joinBtn.textContent = 'Joining...';
-        statusMsg.textContent = 'Joining game...';
-        statusMsg.style.color = '#666';
-
-        socket.emit('join_game', { 
-            game_code: gameCode, 
-            username: username 
+        socket.on('connect', () => {
+            console.log('Connected to server');
         });
-    });
 
-    socket.on('join_success', (data) => {
-        const { game_code, username, color } = data;
+        joinForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            const gameCode = document.getElementById('game-code').value.trim().toUpperCase();
+            const username = document.getElementById('username').value.trim();
+
+            if (!gameCode || !username) {
+                alert("Please fill in both fields.");
+                return;
+            }
+            if (username.length < 2) {
+                alert("Username must be at least 2 characters.");
+                return;
+            }
+
+            localStorage.setItem(`username_${gameCode}`, username);
+
+            joinBtn.disabled = true;
+            joinBtn.textContent = 'Joining...';
+
+            socket.emit('join_game', { 
+                game_code: gameCode, 
+                username: username 
+            });
+        });
+
+        socket.on('join_success', (data) => {
+            const { game_code, username, color } = data;
+            localStorage.setItem(`username_${game_code}`, username);
+            localStorage.setItem(`color_${game_code}`, color);
+            window.location.href = `/student/${game_code}/lobby`;
+        });
+
+        socket.on('error', (data) => {
+            alert(data.message || 'An error occurred');
+            joinBtn.disabled = false;
+            joinBtn.textContent = 'Join Game';
+        });
         
-        // Store all user data for this game
-        localStorage.setItem(`username_${game_code}`, username);
-        localStorage.setItem(`color_${game_code}`, color);
-        
-        statusMsg.textContent = 'Success! Redirecting...';
-        statusMsg.style.color = 'green';
-        window.location.href = `/student/${game_code}/lobby`;
-    });
+        socket.on('banned', (data) => {
+         localStorage.setItem('no', 'true');
+            alert(data.message);
+            window.location.href = '/';
+       });
 
-    socket.on('error', (data) => {
-        alert(data.message || 'An error occurred');
-        joinBtn.disabled = false;
-        joinBtn.textContent = 'Join Game';
-        statusMsg.textContent = '';
-    });
-
-    socket.on('connect_error', (error) => {
-        console.error('Connection error:', error);
-        statusMsg.textContent = 'Connection error. Please refresh the page.';
-        statusMsg.style.color = 'red';
-    });
-</script>
-{% endblock %}
+        socket.on('connect_error', (error) => {
+            alert('Connection error:', error);
+        });
+    </script>
+</body>
+</html>

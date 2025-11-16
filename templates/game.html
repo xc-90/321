@@ -3,118 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chemistry Game</title>
-    <style>
-        .game-info {
-            background-color: #f0f0f0;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 20px 0;
-        }
-        .host-badge {
-            background-color: #4ECDC4;
-            color: white;
-            padding: 5px 10px;
-            border-radius: 4px;
-            font-weight: bold;
-        }
-        .player-badge {
-            background-color: #FF6B6B;
-            color: white;
-            padding: 5px 10px;
-            border-radius: 4px;
-            font-weight: bold;
-        }
-        .teacher-name {
-            font-size: 1.2em;
-            font-weight: bold;
-            color: #ff0000;
-        }
-        
-    </style>
+    <title>Chemistry Game - {{ game_code }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='game/game_base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='game/game_host.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='game/game_player.css') }}">
 </head>
 <body>
-    <h1>Game View</h1>
-    <p>Game Code: <strong>{{ game_code }}</strong></p>
-    
-    <div class="game-info">
-        <p><strong>Your Role:</strong> <span id="role-display">Loading...</span></p>
-        <p><strong>Your Username:</strong> <span id="username-display">Loading...</span></p>
-    </div>
-    
-    <div id="game-content">
-        <p>Hopefully everyone made it here</p>
+    <div class="game-container">
+        <header class="game-header">
+            <div id="game-info">Game Code: {{ game_code }}</div>
+            <div id="timer-display">00:00</div>
+            <div id="phase-display">Waiting to Start</div>
+        </header>
+
+        <div id="player-display-area">
+        </div>
+
+        <main id="main-content-area">
+
+            <div id="host-view" class="view hidden">
+                <h2>Select a Question</h2>
+                <div id="question-selection-grid"></div>
+                <div id="teacher-help-container" class="hidden">
+                    <form id="teacher-help-form">
+                        <input type="text" id="teacher-help-input" placeholder="Help contestants (5 words max)...">
+                        <button type="submit">Send Help</button>
+                        <span id="word-count">0/5 words</span>
+                    </form>
+                </div>
+            </div>
+
+            <div id="player-view" class="view hidden">
+                <div class="question-display-box">
+                    <h3 id="player-question-text"></h3>
+                </div>
+
+                <div id="contestant-answer-area" class="hidden">
+                    <p>You are a contestant! Type your best answer below.</p>
+                    <form id="contestant-answer-form">
+                        <textarea id="contestant-answer-input" placeholder="Your answer..." maxlength="250"></textarea>
+                        <button type="submit">Submit Answer</button>
+                    </form>
+                </div>
+
+                <div id="audience-answer-area" class="hidden">
+                    <p>You are in the audience! Choose the correct answer.</p>
+                    <div id="audience-options-grid"></div>
+                </div>
+
+                <div id="voting-area" class="hidden">
+                     <p>Time to vote! Who had the best answer?</p>
+                     <div id="voting-options-container"></div>
+                </div>
+            </div>
+            >
+            <div id="results-view" class="view hidden">
+                <h2>Round Results</h2>
+                <p>The correct answer was: <strong id="correct-answer-display"></strong></p>
+                <div id="contestant-results-container"></div>
+                <h3>Scores</h3>
+                <div id="scoreboard"></div>
+            </div>
+
+            <div id="waiting-view" class="view">
+                <h2>Waiting for the Teacher to start the next round...</h2>
+            </div>
+        </main>
+
+        <div id="student-chat-container" class="hidden">
+            <div id="chat-messages" class="chat-messages"></div>
+            <form id="chat-form" class="chat-form">
+                <input type="text" id="chat-input" placeholder="Chat with other students..." autocomplete="off" required maxlength="100">
+                <button type="submit">Send</button>
+            </form>
+        </div>
     </div>
 
     <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
     <script>
-        const socket = io();
-        const gameCode = "{{ game_code }}";
-        
-        let isHost = false;
-        let myUsername = '';
-        let myColor = '';
-
-        socket.on('connect', () => {
-            // Use URL referreral to determine if we're the host or a player
-            host = document.referrer && document.referrer.includes(`/host/${gameCode}`);
-            if (host) {
-                socket.emit('verify_host_token', {
-                    game_code: gameCode,
-                    host_token: localStorage.getItem(`host_token_${gameCode}`)
-                });
-            } else {
-                // We're a player, announce with username
-                const username = localStorage.getItem(`username_${gameCode}`);
-                if (username) {
-                    socket.emit('join_game', {
-                        game_code: gameCode,
-                        username: username
-                    });
-                } else {
-                    alert('Session expired. Please rejoin the game.');
-                    window.location.href = '/join';
-                }
-            }
-        });
-        // Always assumes players are the host, fix this
-        socket.on('host_verified', (data) => {
-            isHost = data.is_host;
-            myUsername = 'Teacher';
-            
-            document.getElementById('role-display').innerHTML = '<span class="host-badge">HOST</span>';
-            document.getElementById('username-display').innerHTML = '<span class="teacher-name">' + myUsername + '</span>';
-        });
-
-        socket.on('join_success', (data) => {
-            isHost = false;
-            myUsername = data.username;
-            myColor = data.color;
-            
-            document.getElementById('role-display').innerHTML = '<span class="player-badge">PLAYER</span>';
-            document.getElementById('username-display').textContent = myUsername;
-            document.getElementById('username-display').style.color = myColor;
-            
-            console.log('Confirmed as player:', myUsername);
-        });
-
-        socket.on('error', (data) => {
-            alert(data.message);
-            if (data.message.includes('closed') || data.message.includes('not found')) {
-                window.location.href = '/';
-            }
-        });
-
-        // Prevent window from closing without confirmation
-        window.addEventListener('beforeunload', (event) => {
-            event.preventDefault();
-            event.returnValue = '';
-        });
-        // Stop history back navigation
-        window.addEventListener('popstate', (event) => {
-            event.preventDefault();
-            history.pushState(null, null, window.location.href);
-        });
+        const GAME_CODE = "{{ game_code }}";
     </script>
+    <script src="{{ url_for('static', filename='game/game_state.js') }}"></script>
+    <script src="{{ url_for('static', filename='game/game_ui.js') }}"></script>
+    <script src="{{ url_for('static', filename='game/game_main.js') }}"></script>
 </body>
 </html>
