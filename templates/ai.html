@@ -1,1 +1,67 @@
-<h1>Put AI chat history here</h1>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chats</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='ai.css') }}">
+</head>
+<body>
+
+    <header>
+        <h1>AI Chats</h1>
+    </header>
+
+    <main>
+        <div class="image-gallery">
+            <img src="static/Example1.png" alt="AI Chat Example 1" class="thumbnail">
+            <img src="static/Example2.png" alt="AI Chat Example 2" class="thumbnail">
+            <img src="static/Example3.png" alt="AI Chat Example 3" class="thumbnail">
+            <img src="static/Example4.png" alt="AI Chat Example 4" class="thumbnail">
+            <img src="static/Example5.png" alt="AI Chat Example 5" class="thumbnail">
+            <img src="static/Example6.png" alt="AI Chat Example 6" class="thumbnail">
+            <img src="static/Example7.png" alt="AI Chat Example 7" class="thumbnail">
+
+        </div>
+        <div>
+            <a href="https://chatgpt.com/share/691aa287-8504-8006-b082-2f51f0bf333c">ChatGPT</a>
+                        <a href="https://www.kimi.com/share/19a9014d-31f2-8d73-8000-000088dae863">Kimi K2</a>
+                                    <a href="https://grok.com/share/c2hhcmQtNA_54c58ab4-64fc-4b13-b4d2-2b10dcb66fcd">Grok</a>
+                                                <a href="https://claude.ai/share/56d2b4bf-030e-4d68-ad16-76dad1804a16">Claude</a>
+                                                            <a href="https://chat.deepseek.com/share/5odcutjwzv6a6thx4i">Deepseek</a>
+        </div>
+    </main>
+
+    <div id="imageModal" class="modal">
+        <span class="close">&times;</span>
+        <img class="modal-content" id="modalImage">
+    </div>
+
+    <script>
+        const modal = document.getElementById("imageModal");
+        const modalImg = document.getElementById("modalImage");
+        
+        const thumbnails = document.querySelectorAll(".thumbnail");
+        
+        thumbnails.forEach(img => {
+            img.onclick = function(){
+                modal.style.display = "flex";
+                modalImg.src = this.src;
+            }
+        });
+
+        const span = document.getElementsByClassName("close")[0];
+
+        span.onclick = function() {
+            modal.style.display = "none";
+        }
+
+        modal.onclick = function(event) {
+            if (event.target === modal) {
+                 modal.style.display = "none";
+            }
+        }
+    </script>
+
+</body>
+</html>

@@ -14,6 +14,7 @@
             <div id="game-info">Game Code: {{ game_code }}</div>
             <div id="timer-display">00:00</div>
             <div id="phase-display">Waiting to Start</div>
+            <div id="my-score-display">Your Score: 0</div>
         </header>
 
         <div id="player-display-area">
@@ -24,13 +25,6 @@
             <div id="host-view" class="view hidden">
                 <h2>Select a Question</h2>
                 <div id="question-selection-grid"></div>
-                <div id="teacher-help-container" class="hidden">
-                    <form id="teacher-help-form">
-                        <input type="text" id="teacher-help-input" placeholder="Help contestants (5 words max)...">
-                        <button type="submit">Send Help</button>
-                        <span id="word-count">0/5 words</span>
-                    </form>
-                </div>
             </div>
 
             <div id="player-view" class="view hidden">
@@ -56,17 +50,19 @@
                      <div id="voting-options-container"></div>
                 </div>
             </div>
-            >
+
             <div id="results-view" class="view hidden">
                 <h2>Round Results</h2>
                 <p>The correct answer was: <strong id="correct-answer-display"></strong></p>
                 <div id="contestant-results-container"></div>
-                <h3>Scores</h3>
-                <div id="scoreboard"></div>
             </div>
 
             <div id="waiting-view" class="view">
                 <h2>Waiting for the Teacher to start the next round...</h2>
+            </div>
+
+            <div id="game-over-view" class="view hidden">
+                <div id="final-scoreboard"></div>
             </div>
         </main>
 

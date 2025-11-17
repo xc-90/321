@@ -5,6 +5,7 @@ const GameState = {
     myUsername: '',
     myColor: '',
     myRole: 'audience',
+    myScore: 0,
     players: {},
     scores: {},
 };

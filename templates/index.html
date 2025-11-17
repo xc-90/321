@@ -1,9 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <!-- The link to the CSS file you just created -->
     <link rel="stylesheet" href="{{ url_for('static', filename='index.css') }}">
-    
+    <script src="{{ url_for('static', filename='mobile.js') }}"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Chemistry Game{% endblock %}</title>
@@ -14,7 +13,7 @@
         <nav>
             <a href="{{ url_for('host') }}">Host Game</a>
             <a href="{{ url_for('join') }}">Join Game</a>
-            <a href="{{ url_for('ai') }}">AI Chats</a> <!-- Replace with real url -->
+            <a href="{{ url_for('ai') }}">AI Chats</a>
         </nav>
     </header>
     <main>
