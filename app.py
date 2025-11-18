@@ -25,7 +25,6 @@ AVATAR_COLORS = [
     '#8A84E2', '#3D405B', '#F2CC8F', '#81B29A', '#E07A5F'
 ]
 games = {}
-active_connections = {}
 
 def generate_game_code():
     while True:
@@ -40,6 +39,7 @@ def get_game_code_for_sid(sid):
     return None
 
 def generate_circle_position(existing_positions):
+    """Generate a non-overlapping position for a player circle"""
     max_attempts = 50
     for _ in range(max_attempts):
         top = random.uniform(10, 75)
@@ -71,9 +71,10 @@ def initialize_game_state(game):
     game['timer_task'] = None
     game['player_positions'] = {}
     game['contestants_this_round'] = []
-    game['disconnected_players'] = {}
+    game['disconnected_players'] = {}  # Track temporarily disconnected players
 
 def update_contestant_audience_sids(game, old_sid, new_sid):
+    """Update contestant/audience dicts when a player's SID changes"""
     if old_sid in game['current_contestants']:
         game['current_contestants'][new_sid] = game['current_contestants'].pop(old_sid)
         game['current_contestants'][new_sid]['sid'] = new_sid
@@ -119,15 +120,12 @@ def handle_connect():
 @socketio.on('disconnect')
 def handle_disconnect():
     game_code = get_game_code_for_sid(request.sid)
-    
-    if request.sid in active_connections:
-        active_connections.pop(request.sid, None)
-    
     if not game_code: return
 
     sid = request.sid
 
     def handle_disconnect_delayed():
+        # Wait 30 seconds before removing player to allow reconnection
         socketio.sleep(30)
         if game_code not in games: return
 
@@ -139,12 +137,15 @@ def handle_disconnect():
             return
             
         if game.get('host_sid') == sid:
+            # Mark host as disconnected instead of ending game immediately
             game['host_disconnected'] = True
             game['host_disconnect_time'] = time.time()
             print(f"Host disconnected from game {game_code}, waiting for reconnection...")
             
+            # Wait additional time for host reconnection
             socketio.sleep(30)
             
+            # Check again if host reconnected
             if game_code in games and games[game_code].get('host_disconnected'):
                 print(f"Game {game_code} ended - host did not reconnect")
                 socketio.emit('error', {'message': 'The game has closed as the host disconnected'}, to=game_code)
@@ -172,11 +173,6 @@ def handle_disconnect():
 
 @socketio.on('host_game')
 def handle_host_game():
-    existing_game = active_connections.get(request.sid)
-    if existing_game:
-        emit('error', {'message': 'You are already in a game. Please close other tabs.'})
-        return
-    
     game_code = generate_game_code()
     host_token = secrets.token_urlsafe(32)
     games[game_code] = {
@@ -185,7 +181,6 @@ def handle_host_game():
     }
     initialize_game_state(games[game_code])
     join_room(game_code)
-    active_connections[request.sid] = game_code
     print(f"Game {game_code} created by {request.sid}")
     emit('game_created', {'game_code': game_code, 'host_token': host_token})
 
@@ -198,16 +193,10 @@ def handle_verify_host_token(data):
         emit('access_denied', {'message': 'Invalid game or token'})
         return
 
-    existing_game = active_connections.get(request.sid)
-    if existing_game and existing_game != game_code:
-        emit('error', {'message': 'You are already in another game. Please close other tabs.'})
-        return
-
     game['host_sid'] = request.sid
     game['host_verified'] = True
-    game['host_disconnected'] = False
+    game['host_disconnected'] = False  # Clear disconnect flag
     join_room(game_code)
-    active_connections[request.sid] = game_code
     player_list = [{**p, 'position': game['player_positions'].get(p['sid'])} 
                    for p in game['players'].values()]
     emit('host_verified', {'game_code': game_code, 'players': player_list})
@@ -222,13 +211,9 @@ def handle_join_game(data):
         emit('error', {'message': 'Invalid game code or username'})
         return
     
+    # PREVENT JOINING IF GAME ALREADY STARTED
     if game['state'] not in ['lobby', 'redirecting']:
         emit('error', {'message': 'This game has already started. You cannot join now.'})
-        return
-    
-    existing_game = active_connections.get(request.sid)
-    if existing_game and existing_game != game_code:
-        emit('error', {'message': 'You are already in another game. Please close other tabs.'})
         return
     
     if any(word in BAD_WORDS for word in username.lower().split()):
@@ -236,28 +221,9 @@ def handle_join_game(data):
         socketio.disconnect(request.sid)
         return
 
-    existing_player = None
-    for sid, player_data in game['players'].items():
-        if player_data['username'] == username:
-            existing_player = sid
-            break
-    
-    if existing_player and existing_player != request.sid:
-        emit('error', {'message': 'This username is already in use in this game.'})
-        return
-
-    if request.sid in game['players']:
-        emit('join_success', {
-            'game_code': game_code, 
-            'username': username, 
-            'color': game['players'][request.sid]['color']
-        })
-        return
-
     join_room(game_code)
-    active_connections[request.sid] = game_code
-    
     color = random.choice(AVATAR_COLORS)
+    
     existing_positions = list(game['player_positions'].values())
     position = generate_circle_position(existing_positions)
     game['player_positions'][request.sid] = position
@@ -270,11 +236,7 @@ def handle_join_game(data):
     }
     game['player_scores'][request.sid] = 0
 
-    emit('join_success', {
-        'game_code': game_code, 
-        'username': username, 
-        'color': game['players'][request.sid]['color']
-    })
+    emit('join_success', {'game_code': game_code, 'username': username, 'color': color})
     player_list = [{**p, 'position': game['player_positions'].get(p['sid'])} 
                    for p in game['players'].values()]
     socketio.emit('update_player_list', {'players': player_list}, to=game_code)
@@ -291,16 +253,10 @@ def handle_announce_in_game(data):
     username = data.get('username')
     
     if host_token and host_token == game.get('host_token'):
-        existing_game = active_connections.get(request.sid)
-        if existing_game and existing_game != game_code:
-            emit('error', {'message': 'You are already in another game. Please close other tabs.'})
-            return
-        
         game['host_sid'] = request.sid
         game['host_verified'] = True
-        game['host_disconnected'] = False
+        game['host_disconnected'] = False  # Clear disconnect flag
         join_room(game_code)
-        active_connections[request.sid] = game_code
         
         used_ids = game.get('questions_used', [])
 
@@ -317,17 +273,13 @@ def handle_announce_in_game(data):
         return
 
     elif username:
-        existing_game = active_connections.get(request.sid)
-        if existing_game and existing_game != game_code:
-            emit('error', {'message': 'You are already in another game. Please close other tabs.'})
-            return
-        
         join_room(game_code)
-        active_connections[request.sid] = game_code
         old_sid = None
         player_data = None
         
+        # Check if this is a reconnecting player
         if username in game.get('disconnected_players', {}):
+            # Restore player from disconnected state
             disconnected_data = game['disconnected_players'].pop(username)
             player_data = disconnected_data['data']
             player_data['sid'] = request.sid
@@ -338,6 +290,7 @@ def handle_announce_in_game(data):
             
             print(f"Player {username} reconnected with new SID {request.sid}")
         else:
+            # Find player by username
             for sid, p_data in list(game['players'].items()):
                 if p_data['username'] == username:
                     old_sid = sid
@@ -464,8 +417,10 @@ def handle_teacher_selects_question(data):
         'contestants': [game['players'][sid] for sid in contestant_sids]
     }
     
+    # Send general round start info to everyone
     socketio.emit('new_round_started', payload, to=game_code)
     
+    # Give clients a moment to process the round start
     socketio.sleep(0.1)
     
     for sid in contestant_sids:
@@ -487,6 +442,7 @@ def run_round_timer(game_code):
     if not game: return
 
     game['state'] = 'answering'
+    # 30 second answering phase
     for i in range(30, 0, -1):
         socketio.emit('timer_update', {'time': i, 'phase': 'Answering'}, to=game_code)
         socketio.sleep(1)
@@ -502,6 +458,7 @@ def run_round_timer(game_code):
     }
     socketio.emit('phase_change', {'phase': 'voting', 'answers': contestant_answers_for_voting}, to=game_code)
     
+    # 15 second voting phase
     for i in range(15, 0, -1):
         socketio.emit('timer_update', {'time': i, 'phase': 'Voting'}, to=game_code)
         socketio.sleep(1)
@@ -516,16 +473,19 @@ def calculate_and_show_results(game_code):
 
     correct_idx = game['current_question']['correct_answer_index']
     
+    # Award points to audience members who got it right
     for sid, answer in game['current_answers'].items():
         if sid in game['current_audience']:
             if answer == correct_idx:
                 game['player_scores'][sid] = game['player_scores'].get(sid, 0) + 100
 
+    # Count votes for contestants
     vote_counts = {sid: 0 for sid in game['current_contestants']}
     for voter, voted_for in game['current_votes'].items():
         if voted_for in vote_counts:
             vote_counts[voted_for] += 1
     
+    # Award points to contestants with most votes
     if vote_counts:
         max_votes = max(vote_counts.values())
         if max_votes > 0:
@@ -548,11 +508,13 @@ def calculate_and_show_results(game_code):
     }
     socketio.emit('show_results', results_payload, to=game_code)
     
+    # Send individual score updates to ALL players
     for sid in game['players']:
         socketio.emit('update_my_score', {'score': game['player_scores'].get(sid, 0)}, to=sid)
 
     socketio.sleep(10)
     
+    # Check if game is over
     if len(game['questions_used']) >= len(QUESTIONS):
         game['state'] = 'game_over'
         
