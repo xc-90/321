@@ -9,6 +9,11 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='game/game_player.css') }}">
 </head>
 <body>
+    <button id="music-control-btn" title="Toggle Music">🔇</button>
+    <audio id="background-music" loop>
+        <source src="{{ url_for('static', filename='music.mp3') }}" type="audio/mpeg">
+    </audio>
+
     <div class="game-container">
         <header class="game-header">
             <div id="game-info">Game Code: {{ game_code }}</div>
@@ -78,6 +83,24 @@
     <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
     <script>
         const GAME_CODE = "{{ game_code }}";
+
+        const musicBtn = document.getElementById('music-control-btn');
+        const bgMusic = document.getElementById('background-music');
+        let musicPlaying = false;
+
+        musicBtn.addEventListener('click', () => {
+            if (musicPlaying) {
+                bgMusic.pause();
+                musicBtn.textContent = '🔇';
+                musicBtn.classList.remove('playing');
+                musicPlaying = false;
+            } else {
+                bgMusic.play();
+                musicBtn.textContent = '🔊';
+                musicBtn.classList.add('playing');
+                musicPlaying = true;
+            }
+        });
     </script>
     <script src="{{ url_for('static', filename='game/game_state.js') }}"></script>
     <script src="{{ url_for('static', filename='game/game_ui.js') }}"></script>

@@ -88,6 +88,37 @@ button {
 button:hover:not(:disabled) { background-color: #fff; color: #000; }
 button:disabled { background-color: #222; color: #777; border-color: #555; cursor: not-allowed; }
 
+#music-control-btn {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background-color: #111;
+    border: 2px solid #444;
+    color: #fff;
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+    box-shadow: 0 5px 15px rgba(255, 255, 255, 0.1);
+    padding: 0;
+}
+
+#music-control-btn:hover {
+    background-color: #222;
+    border-color: #666;
+    transform: scale(1.05);
+}
+
+#music-control-btn.playing {
+    background-color: #4ECDC4;
+    color: #000;
+    border-color: #4ECDC4;
+}
+
 #student-chat-container {
     position: fixed; bottom: 10px; right: 10px; width: 300px; height: 220px;
     background-color: #111; border: 2px solid #444; border-radius: 8px;
@@ -125,25 +156,12 @@ button:disabled { background-color: #222; color: #777; border-color: #555; curso
 
 .trophy-icon {
     font-size: 5rem;
-    animation: bounce 2s infinite;
-}
-
-@keyframes bounce {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-20px); }
 }
 
 .sad-face {
     font-size: 10rem;
     color: #555;
     font-weight: bold;
-    animation: sadShake 1s ease-in-out;
-}
-
-@keyframes sadShake {
-    0%, 100% { transform: rotate(0deg); }
-    25% { transform: rotate(-5deg); }
-    75% { transform: rotate(5deg); }
 }
 
 .winner-container h2 {
@@ -182,12 +200,6 @@ button:disabled { background-color: #222; color: #777; border-color: #555; curso
     color: #000;
     text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
     box-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
-    animation: gentlePulse 2s infinite;
-}
-
-@keyframes gentlePulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.02); }
 }
 
 .winner-circle {
@@ -203,12 +215,6 @@ button:disabled { background-color: #222; color: #777; border-color: #555; curso
     color: #000;
     text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
     box-shadow: 0 0 50px rgba(255, 255, 255, 0.3);
-    animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-    0%, 100% { transform: scale(1); box-shadow: 0 0 50px rgba(255, 255, 255, 0.3); }
-    50% { transform: scale(1.05); box-shadow: 0 0 80px rgba(255, 255, 255, 0.5); }
 }
 
 .winner-name {
